@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .question { font-size: 18px; margin-bottom: 10px; }
+        .options label { display: block; margin: 5px 0; position: relative; }
+        .options label.correct::after {
+            content: "✓";
+            color: green;
+            font-size: 18px;
+            margin-left: 10px;
+        }
+        .options label.incorrect::after {
+            content: "✖";
+            color: red;
+            font-size: 18px;
+            margin-left: 10px;
+        }
+        .button { margin-top: 20px; padding: 10px 20px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="question-section">
+            <div class="question" id="question-text"></div>
+            <div class="options" id="options-container"></div>
+            <input type="number" id="question-number" placeholder="Введите номер вопроса" min="1" style="margin: 10px 0;" />
+            <button class="button" id="go-to-question">Перейти к вопросу</button>
+            <button class="button" id="prev-button" style="display:none;">Назад</button>
+            <button class="button" id="next-button">Далее</button>
+        </div>
+        <div id="result-section" style="display:none;">
+            <h1>Тест завершен!</h1>
+            <p id="final-score"></p>
+        </div>
+        <button class="button" id="restart-button" style="display:none;">Начать заново</button>
+    </div>
+
+    <script>
+        let QUESTIONS = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+
+        async function loadQuestions() {
+            try {
+                const response = await fetch("questions_ex.json"); // Загружаем JSON напрямую
+                QUESTIONS = await response.json();
+                showQuestion();
+            } catch (error) {
+                console.error("Ошибка загрузки вопросов:", error);
+                alert("Не удалось загрузить вопросы. Проверьте файл questions_ex.json.");
+            }
+        }
+
+        function showQuestion() {
+            const question = QUESTIONS[currentQuestionIndex];
+            document.getElementById("question-text").textContent = `${currentQuestionIndex + 1}. ${question.question}`;
+
+            const optionsContainer = document.getElementById("options-container");
+            optionsContainer.innerHTML = "";
+            question.options.forEach(option => {
+                const label = document.createElement("label");
+                const isCorrect = option.startsWith("✓ | ");
+                label.innerHTML = `
+                    <input type="radio" name="option" value="${option}">
+                    ${option.replace('✓ | ', '')}
+                `;
+                label.dataset.correct = isCorrect;
+                optionsContainer.appendChild(label);
+            });
+
+            document.getElementById("prev-button").style.display = currentQuestionIndex > 0 ? "inline-block" : "none";
+        }
+
+        document.getElementById("next-button").addEventListener("click", () => {
+            const selected = document.querySelector('input[name="option"]:checked');
+            if (!selected) {
+                alert("Выберите вариант ответа!");
+                return;
+            }
+
+            const labels = document.querySelectorAll("#options-container label");
+            labels.forEach(label => {
+                const input = label.querySelector("input");
+                if (label.dataset.correct === "true") {
+                    label.classList.add("correct");
+                } else if (input.checked) {
+                    label.classList.add("incorrect");
+                }
+            });
+
+            if (selected.parentElement.dataset.correct === "true") {
+                score++;
+            }
+
+            currentQuestionIndex++;
+            if (currentQuestionIndex < QUESTIONS.length) {
+                setTimeout(showQuestion, 1000);
+            } else {
+                setTimeout(showResults, 1000);
+            }
+        });
+
+        document.getElementById("prev-button").addEventListener("click", () => {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                showQuestion();
+            }
+        });
+
+        document.getElementById("go-to-question").addEventListener("click", () => {
+            const questionNumber = parseInt(document.getElementById("question-number").value);
+            if (!isNaN(questionNumber) && questionNumber > 0 && questionNumber <= QUESTIONS.length) {
+                currentQuestionIndex = questionNumber - 1;
+                showQuestion();
+            } else {
+                alert("Неверный номер вопроса!");
+            }
+        });
+
+        function showResults() {
+            document.getElementById("question-section").style.display = "none";
+            document.getElementById("result-section").style.display = "block";
+            document.getElementById("final-score").textContent = `Вы правильно ответили на ${score} из ${QUESTIONS.length} вопросов.`;
+            document.getElementById("restart-button").style.display = "block";
+        }
+
+        document.getElementById("restart-button").addEventListener("click", () => {
+            currentQuestionIndex = 0;
+            score = 0;
+            document.getElementById("result-section").style.display = "none";
+            document.getElementById("question-section").style.display = "block";
+            document.getElementById("restart-button").style.display = "none";
+            showQuestion();
+        });
+
+        loadQuestions(); // Запуск загрузки вопросов
+    </script>
+</body>
+</html>
