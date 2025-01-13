@@ -46,9 +46,14 @@
         let score = 0;
 
         async function loadQuestions() {
-            const response = await fetch("/questions");
-            QUESTIONS = await response.json();
-            showQuestion();
+            try {
+                const response = await fetch("questions_ex.json"); // Загружаем JSON напрямую
+                QUESTIONS = await response.json();
+                showQuestion();
+            } catch (error) {
+                console.error("Ошибка загрузки вопросов:", error);
+                alert("Не удалось загрузить вопросы. Проверьте файл questions_ex.json.");
+            }
         }
 
         function showQuestion() {
@@ -133,7 +138,7 @@
             showQuestion();
         });
 
-        loadQuestions();
+        loadQuestions(); // Запуск загрузки вопросов
     </script>
 </body>
 </html>
